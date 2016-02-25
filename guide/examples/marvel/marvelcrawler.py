@@ -1,4 +1,4 @@
-from __init__ import Teleportation
+from jaw import Teleportation
 
 def relativeLink(link):
     if link[0:9] != '/universe':
@@ -27,5 +27,3 @@ tele = Teleportation(base_url, link_tests, soup_tests)
 soup = tele.Seed('http://marvel.com/universe/Scarlet_Witch_%28Wanda_Maximoff%29')
 while soup:
     soup = tele.Teleport()
-
-print(count)

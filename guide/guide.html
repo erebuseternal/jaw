@@ -1,0 +1,147 @@
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="style/guide.css" />
+  <title>A Guide to jaw</title>
+</head>
+<body>
+  <div class="section">
+    <h1>Overview</h1>
+    <h3><code>jaw</code>: In a Few Words</h3>
+    <p>
+      All scrapers have two layers: the layer that actually gathers data from individual
+      pages, and the layer that navigates the site we are trying to scrape.
+      <code>jaw</code> concerns the latter. Specifically, <code>jaw</code> complements
+      <code>jess</code>. Given a site, a seed, and an indication of the types
+      of pages you want to scrape <code>jaw</code> will handle moving through the site and
+      returning the soups for pages that match your criteria, all while making sure
+      that every page reachable from your seed that fits your criteria can be reached
+      in your program while ensuring that you never get any duplicates.
+    </p>
+    <p>
+      The first thing to understand then about <code>jaw</code> is how you indicate
+      the criteria for the pages you want to find.
+    </p>
+  </div>
+  <div class="section">
+    <h1>Configuration</h1>
+    <p>
+      Ultimately, <code>jaw</code> wants to make sure that it doesn't return any
+      pages you do not want. This way, you can simply take the pages found
+      with <code>jaw</code> and pass them directly into <code>jess</code>. In order
+      to achieve this, <code>jaw</code> allows you to filter out pages at two levels:
+      the link level, and the page level. The way <code>jaw</code> does this
+      is by taking a set of tests for links and a set of tests for the soup obtained
+      at the end of those links.
+    </p>
+    <p>
+      These tests must be functions that take as their
+      only input what they will be testing (a link [in the form of a string] for
+      link tests and a soup for soup tests) and then within the functions you can
+      implement your test. In your logic if the tag or soup passes you must have
+      your function return True, and otherwise False.
+    </p>
+    <p>
+      The way that <code>jaw</code> uses this tests is in the following way:
+      For every link that <code>jaw</code> considers, it will run each of
+      your tests on the link, and if the link passes all of those tests it will
+      check to see if it has found the link before. If it hasn't, then it will
+      try to grab the soup at the end of the link. If that fails it will go
+      onto the next link. If not it will check to see if it has found this soup
+      before, and if it hasn't it will run your soup tests on the soup itself.
+      If the soup passes these tests, <code>jaw</code> will return this soup to you
+      and set it as the soup from which to find the next good link (and its soup).
+    </p>
+    <p>
+      In this way, <code>jaw</code> allows you to specify criteria for your pages
+      in such a way that you can trust <code>jaw</code> to get you the pages you want
+      and don't have to worry about any checks before passing it straight onto
+      <code>jess</code>.
+    </p>
+    <p>
+      Now I should note here that there is an additional link test that <code>jaw</code>
+      adds on initialization. That is a test to make sure that your link is actually
+      in the correct domain. When you initialize <code>jaw</code>, you have to
+      give it a base url. For each link that <code>jaw</code> considers, it will look
+      to make sure that either the start of that link is your base url, or that the
+      link is relative. (Note that, <code>jaw</code> will only put the link in
+      proper form by adding a base url for those links which are relative when it
+      actually has to retrieve the soup, but this doesn't change the string containing
+      the link that is used for tests.)
+    </p>
+  </div>
+  <div class="section">
+    <h1>Site Navigation and Duplicate Prevention</h1>
+    <p>
+      The way that <code>jaw</code> navigates the site is relatively simple. It starts
+      at your seed and goes through the links of the page in order. For each link
+      it runs the aforementioned tests, and if a link passes it then checks a hash table
+      to check if the link has already been found. (It checks after the tests, because
+      otherwise the hash table will get way to big way to fast) If it has not been found
+      then <code>jaw</code> adds the hash of the link to its hash table for links. Then
+      it tries to grab the soup at the other end of the link. If this works, it then
+      hashes the soup and checks its hash table for soups to make sure we haven't found this
+      soup (the idea here is that the number of hashes in this table will always be relatively
+      small and so lookup will be quick, so this comes before the tests are run). If
+      we haven't already found it, we add its hash to the table and run the tests on the soup.
+      If the soup passes these tests <code>jaw</code> returns the soup.
+    </p>
+    <p>
+      If any one of these pieces fails (either a test isn't passed, or we find a repeat,
+      or a link doesn't have a page on the other end of it) then we move onto the next
+      link in the page immediately.
+    </p>
+    <p>
+      The next time you ask for a new page, <code>jaw</code> will go through the exact
+      same procedure except that instead of grabbing links from your seed it will
+      grab links from the last soup that it returned to you.
+    </p>
+    <p>
+      Now if none of the links in the page worked, then <code>jaw</code> will move
+      back to the soup that it found the current page from and run the above procedure
+      on that page again, thereby picking up the next good link after then one that
+      generated your current page. If this also fails, it will step back yet another
+      page in the same manner, and will continue this pattern
+      until it finally gets back to the seed and tries to step back from that.
+      At that point it will print a message about how it has no options left and
+      will then return None instead of a soup.
+    </p>
+  </div>
+  <div class="section">
+    <h1>Using <code>jaw</code></h1>
+    <p>
+      Using <code>jaw</code> is really simple. The class to use is <code>jaw.Teleportation</code>.
+      You initialize this with (in order) a base url (as a string), a list containing
+      your link test functions, a list containing your soup test functions, a list
+      of link hashes (in case you wish to load in a set of hashes you already have),
+      and finally a list of soup hashes. All of the lists above default to empty.
+    </p>
+    <p>
+      After you have an instance of the class, you can seed it with a link by
+      calling the <code>Seed</code> method with the link as the only input. Note
+      that this link does not go through any of your tests, so make sure that it
+      matches a page you actually want. Neither is the soup or link checked for
+      in your hash tables, so make sure you know how you want to handle that bit.
+      <code>Seed</code> will return the soup at the end of the link you entered.
+    </p>
+    <p>
+      Now that you have seeded the class, all you need to do is call the
+      <code>Teleport</code> method with no input, and <code>jaw</code> will find your
+      next page for you and will return its soup. Of course, when it can no longer find
+      anything, the method will just return None every time you call it.
+    </p>
+    <h3>Why the Weird Names?</h3>
+    <p>
+      Given that this is a web crawling complement to <code>jess</code> which of
+      course was named after Spider Woman, I had to find another character to
+      name this after. I named it after LockJaw (look at the comics and you'll
+      understand why). LockJaw can teleport, so thus the names you see here.
+    </p>
+    <p>
+      And that's it! Enjoy :)
+    </p>
+  </div>
+  <footer>
+    <p>Copyright &#9400; 2016 by Marcel Gietzmann-Sanders</p>
+  </footer>
+</body>
+</html>

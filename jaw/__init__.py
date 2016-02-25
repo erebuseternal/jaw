@@ -8,12 +8,21 @@ class Issue(Exception):
     def __str__(self):
         return 'ERROR: the problem was: %s' % self.problem
 
+"""
+The following class allows us to keep track of the soups that we gather
+as if they are nodes in a tree, so we can always go back to the parent
+"""
+
 class Step:
 
     # parent is the parent step, and soup is the current soup for this step
     def __init__(self, parent, soup):
         self.parent = parent
         self.soup = soup
+
+"""
+Refer to the guide
+"""
 
 class Teleportation:
 
