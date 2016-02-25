@@ -24,12 +24,13 @@ class Teleportation:
         self.expre = re.compile('^%s' % base_url)
         base_url_test = self.base_url_test
         # now we create the link_tests and soup_tests list
-        self.link_tests = link_tests + [name_test]
+        self.link_tests = link_tests + [base_url_test]
         self.soup_tests = soup_tests
         # now we have the hash lists
         self.link_hashes = link_hashes
         self.soup_hashes = soup_hashes
         self.current_step = None
+        self.count = 0
 
     def base_url_test(self, link):
         # first we try to make sure the link starts with the base_url
@@ -63,7 +64,7 @@ class Teleportation:
         # this checks to see if a link is relative, and if it
         # is goes ahead sticks the base url on the front
         if link[0] == '/':
-            link = base_url + link
+            link = self.base_url + link
         return link
 
     def getSoup(self, link):
@@ -86,6 +87,8 @@ class Teleportation:
         if soup:
             # we set the current step to be the step containing our seed
             self.current_step = Step(None, soup)
+            # and then we return the soup
+            return soup
         else:
             raise Issue('link you provided as a seed is invalid, no soup was obtained')
 
@@ -94,7 +97,7 @@ class Teleportation:
             print('current step is None, returning None to indicate all paths have been searched')
             return None
         # first we get the link tags in our soup
-        link_tags = self.current_step.soup.a
+        link_tags = self.current_step.soup.find_all('a')
         # now we iterate through them
         for tag in link_tags:
             # next we try to get their href attribute
@@ -103,6 +106,10 @@ class Teleportation:
             except:
                 # in this case we just continue onto the next link tag
                 continue
+            # next we are going to put the link through our tests
+            if not self.checkLink(link):
+                # one of the tests wasn't passed so we move onto the next tag
+                continue
             # now we check to make sure we haven't found this already
             h = hash(link)
             if h in self.link_hashes:
@@ -110,10 +117,7 @@ class Teleportation:
                 continue
             # now we know we have a new link, so we record it in our hashes
             self.link_hashes.append(h)
-            # next we are going to put the link through our tests
-            if not self.checkLink(link):
-                # one of the tests wasn't passed so we move onto the next tag
-                continue
+            print('this is a new link that passed your tests: %s' % link)
             # alright so our link tests passed, now we try to get the soup from this
             soup = self.getSoup(link)
             # we check that the soup exists
@@ -133,12 +137,19 @@ class Teleportation:
             next_step = Step(self.current_step, soup)
             # now we set our current step as this step
             self.current_step = next_step
+            # we incremement the count and see if it is divisible by 10
+            # if so we let the user know where they are at
+            self.count += 1
+            if self.count % 10 == 0:
+                print('Pages reached so far: %s' % self.count)
             # and finally we return the soup that we have found
+            print('the page at this link is new and passed your tests: %s' % link)
             return soup
         # now if we get here it means that have searched every tag and
         # nothing has worked for us so we are going to have to go back
         # to the previous step. So we set the current_step to be this current_step's
         # parent and call this function again
+        print('GOING BACK A STEP')
         parent_step = self.current_step.parent
         self.current_step = parent_step
         return self.Teleport()
