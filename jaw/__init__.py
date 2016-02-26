@@ -40,6 +40,7 @@ class Teleportation:
         self.soup_hashes = soup_hashes
         self.current_step = None
         self.count = 0
+        self.current_link = ''
 
     def base_url_test(self, link):
         # first we try to make sure the link starts with the base_url
@@ -96,6 +97,7 @@ class Teleportation:
         if soup:
             # we set the current step to be the step containing our seed
             self.current_step = Step(None, soup)
+            self.current_link = link
             # and then we return the soup
             return soup
         else:
@@ -153,6 +155,7 @@ class Teleportation:
                 print('Pages reached so far: %s' % self.count)
             # and finally we return the soup that we have found
             print('the page at this link is new and passed your tests: %s' % link)
+            self.current_link = link
             return soup
         # now if we get here it means that have searched every tag and
         # nothing has worked for us so we are going to have to go back
